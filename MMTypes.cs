@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-class Trail
+public class Trail
 {
     public int Trigger;
     public List<int> Body;
@@ -9,7 +9,7 @@ class Trail
     public override string ToString() => $"$ {Trigger} > {string.Join(" > ", Body)} : {ms_Decay} $";
 }
 
-class Segment
+public class Segment
 {
     public int Id;
     public int XOffset;
@@ -21,7 +21,7 @@ class Segment
         => $"({Id} @ ({XOffset}, {YOffset}) : {ms_Build}, {ms_Decay})";
 }
 
-class Structure
+public class Structure
 {
     public int Trigger;
     public List<Segment> Segments; 
@@ -30,8 +30,9 @@ class Structure
         => $"& {Trigger} > {string.Join(" > ", Segments)} &";
 }
 
-class MMBundle
+public class MMConfiguration
 {
+    public Dictionary<string, string> Auth;
     public List<Trail> Trails;
     public List<Structure> Structures;
 }

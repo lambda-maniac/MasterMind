@@ -5,15 +5,19 @@ static class MMParser
 {
     const string Numbers = "1234567890";
 
-    const char Ampersand = '&';
-    const char Greater   = '>';
-    const char Dollar    = '$';
-    const char Colon     = ':';
-    const char Comma     = ',';
-    const char At        = '@';
+    const char CloseBracket = ']';
+    const char OpenBracket  = '[';
+    const char Ampersand    = '&';
+    const char Greater      = '>';
+    const char Dollar       = '$';
+    const char Colon        = ':';
+    const char Comma        = ',';
+    const char At           = '@';
 
-    public static MMBundle Parse(string source)
+    public static MMConfiguration Parse(string source)
     {
+        Dictionary<string, string> auth = new Dictionary<string, string>();
+
         List<Structure> structures = new List<Structure>();
         List<Trail>     trails     = new List<Trail>();
 
@@ -57,7 +61,6 @@ static class MMParser
                         });
 
                         node = string.Empty;
-
                         break;
                     }
                 }
@@ -77,11 +80,15 @@ static class MMParser
                 int build = -1;
                 int decay = -1;
 
-                bool coordinates = false;
+                bool coordinates       = false;
+                bool isParsingNegative = false;
 
                 for (index = index + 1; index < source.Length; ++index)
                 {
                     current = source[index];
+
+                    if (current == '-')
+                        isParsingNegative = true;
                     
                     if (Numbers.Contains(current))
                     {
@@ -123,7 +130,11 @@ static class MMParser
                     if (current == Comma)
                     {
                         if (coordinates)
-                            x = int.Parse(node);
+                        {
+                            int value = int.Parse(node);
+                            x = isParsingNegative ? -value : value;
+                            isParsingNegative = false;
+                        }
                         else
                             build = int.Parse(node);
 
@@ -133,9 +144,11 @@ static class MMParser
 
                     if (current == Colon)
                     {
-                        y = int.Parse(node);
-                        node = string.Empty;
+                        int value = int.Parse(node);
+                        y = isParsingNegative ? -value : value;
+                        isParsingNegative = false;
                         coordinates = false;
+                        node = string.Empty;
                         continue;
                     }
 
@@ -152,7 +165,7 @@ static class MMParser
                         });
 
                         structures.Add(new Structure {
-                            Trigger = (int)trigger,
+                            Trigger = trigger ?? -1,
                             Segments = segments
                         });
 
@@ -161,8 +174,51 @@ static class MMParser
                     }
                 }
             }
+
+            if (current == OpenBracket)
+            {
+                bool isParsingUser        = false;
+                bool isParsingPass        = false;
+                bool isParsingCredentials = false;
+
+                for (index = index + 1; index < source.Length; ++index)
+                {
+                    current = source[index];
+
+                    if (Char.IsWhiteSpace(current))
+                        continue;
+
+                    if (current == CloseBracket)
+                    {
+                        if (isParsingUser) auth["email"]    = node;
+                        if (isParsingPass) auth["password"] = node;
+
+                        node = string.Empty;
+                        break;
+                    }
+
+                    node += current;
+
+                    isParsingCredentials = isParsingUser || isParsingPass;
+
+                    if (node == "email" && !isParsingCredentials)
+                    {
+                        isParsingUser = true;
+                        node = string.Empty;
+                        continue;
+                    }    
+
+                    if (node == "passw" && !isParsingCredentials)
+                    {
+                        isParsingPass = true;
+                        node = string.Empty;
+                        continue;
+                    }
+                }
+            }
         }
 
-        return new MMBundle { Trails = trails, Structures = structures }; 
+        return new MMConfiguration
+            { Auth = auth, Trails = trails, Structures = structures }; 
     }
 }
